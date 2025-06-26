@@ -41,8 +41,13 @@ public class ProductUpdateController {
         // Delegate business logic to service layer
         int productId = productService.updateProduct(product);
         
-        // Log the successful operation
-        loggerService.saveLogger(product);
+        // Log the successful operation - but don't fail the request if logging fails
+        try {
+            loggerService.saveLogger(product);
+        } catch (Exception ex) {
+            // Log the error but don't fail the request
+            System.err.println("Warning: Failed to log product update: " + ex.getMessage());
+        }
         
         return ResponseEntity.ok(ProductResponse.success(productId));
     }

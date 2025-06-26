@@ -1,5 +1,6 @@
 package Project_ITSS.controller;
 
+import Project_ITSS.exception.PlaceOrderException;
 import Project_ITSS.common.validation.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,9 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -19,8 +23,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
+    @ExceptionHandler(PlaceOrderException.class)
+    public ResponseEntity<String> handlePlaceOrderException(PlaceOrderException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     @ExceptionHandler({HttpMessageNotReadableException.class, JsonParseException.class, JsonMappingException.class, InvalidTypeIdException.class})
-    public ResponseEntity<String> handleJsonParsingException(Exception ex) {
+    public ResponseEntity<String> handleJsonParsingException(Exception ex, HttpServletRequest request) {
+        String requestPath = request.getRequestURI();
+        
+        // Handle null content for specific endpoints with appropriate validation messages
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("null")) {
+            switch (requestPath) {
+                case "/placeorder":
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cart cannot be null");
+                case "/deliveryinfo":
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Delivery information cannot be null");
+                case "/recalculate":
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Fee information cannot be null");
+                case "/finish-order":
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Order information cannot be null");
+            }
+        }
+        
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid JSON format");
     }
 
